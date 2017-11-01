@@ -1,5 +1,6 @@
 """Basic attention model on classification."""
 """ batched bidirectional gru """
+import os
 import sys
 import json
 import time
@@ -59,7 +60,7 @@ class basicAttn(nn.Module):
         # c
         context_vector = alpha.bmm(rnn_output.transpose(0,1))
         # B, 1, S bmm B, S, H*2 -> B, 1, H*2
-        output = self.out(context_vector)
+        output = self.out(context_vector.squeeze(1))
 
         return output, hidden, alpha
 
@@ -75,8 +76,8 @@ def train(model, optimizer, criterion, input_var, label, length, GPU_use):
     mini_batch_size = input_var.size()[0]
     init_hidden = model.initHidden(mini_batch_size)
     output, hidden, alpha = model(input_var, length, init_hidden)
-    # output : B, 1, label_size
-    loss = masked_cross_entropy(output, label.unsqueeze(1), length, GPU_use)
+    # output : B, label_size
+    loss = criterion(output, label.squeeze())
     loss.backward()
     optimizer.step()
     return loss.data[0]
@@ -100,7 +101,7 @@ if __name__ == "__main__":
     MAX_LENGTH = 30
     VOCAB_SIZE = 30000
     mini_batch_size = 64
-    GPU_use = True
+    GPU_use = False
 
     n_epoch = 10
     n_layer = 1
@@ -108,8 +109,8 @@ if __name__ == "__main__":
     hidden_size = 7
     learning_rate = 0.0001
     dropout = 0.1
-    print_every = 1000
-    plot_every = 100
+    print_every = mini_batch_size * 10
+    plot_every = mini_batch_size * 5
 
     lang, train_data, train_label, train_lengths, valid_data, valid_label, \
     test_data, test_label = prepareData(data_name, isDependency, isPOS,
@@ -130,7 +131,7 @@ if __name__ == "__main__":
     plot_losses = []
     print_loss_total = 0
     plot_loss_total = 0
-    total_iter = len(train_data) * n_epoch * 1.
+    total_iter = len(train_data) * mini_batch_size * n_epoch * 1.
     iter_cnt = 0
     for epoch in range(n_epoch):
         for i in range(len(train_data)):
@@ -153,6 +154,8 @@ if __name__ == "__main__":
                 plot_loss_avg = plot_loss_total / (plot_every*1.)
                 plot_losses.append(plot_loss_avg)
                 plot_loss_total = 0
+            break
+        break
     showPlot(plot_losses, 'batched_vanilaRNN')
     print("Training done.")
 
