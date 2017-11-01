@@ -17,6 +17,13 @@ from preprocess import *
 from utils import *
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
+"""
+TODO: hyperparameter tuning
+- learning rate
+- batch size
+- dropout
+- epoch
+"""
 class basicAttn(nn.Module):
     def __init__(self, num_embeddings, embedding_size, mini_batch_size,
     hidden_size, label_size, n_layer, dropout, GPU_use):
@@ -149,12 +156,11 @@ if __name__ == "__main__":
                 print_loss_total = 0
                 print('%s (%d %d%%) %.4f' % ((timeSince(start,iter_cnt/total_iter)),
                 iter_cnt, iter_cnt/total_iter * 100, print_loss_avg))
-
-            if iter_cnt % plot_every == 0:
-                plot_loss_avg = plot_loss_total / (plot_every*1.)
-                plot_losses.append(plot_loss_avg)
-                plot_loss_total = 0
             break
+        # plot every epoch
+        plot_loss_avg = plot_loss_total / (epoch*1.)
+        plot_losses.append(plot_loss_avg)
+        plot_loss_total = 0
         break
     showPlot(plot_losses, 'batched_vanilaRNN')
     print("Training done.")
