@@ -34,10 +34,16 @@ def filterText(text):
     return text
 
 def getDependencyRelations(json_data, temp_data, parser):
+    print("Analyzing dependency relationships...")
     for key in temp_data:
         for s in temp_data[key]:
             sentence = ' '.join(s)
-            result = parser.raw_parse(sentence)
+            try:
+                result = parser.raw_parse(sentence)
+            except:
+                print("dependency parse error occured.")
+                print(sentence)
+                continue
             dep = result.next()
             parsed_list = list(dep.triples())
             parsed_sentence = []
@@ -51,10 +57,10 @@ def getDependencyRelations(json_data, temp_data, parser):
     return json_data
 
 def getPOStags(json_data, temp_data):
+    print("Analyzing Part of Speech tags...")
     for key in temp_data:
         for s in temp_data[key]:
-            sentence = ' '.join(s)
-            parsed = nltk.pos_tag(sentence)
+            parsed = nltk.pos_tag(s)
             parsed_sentence = []
             for tup in parsed:
                 parsed_sentence.append(tup[0])
@@ -103,7 +109,7 @@ def readTwitterData(data_dir, isDependency, isPOS, MAX_LENGTH, tokenizer, parser
     'sadness': [], 'surprise': []}
 
     with open(data_dir, 'r') as f:
-        sentences = f.readlines
+        sentences = f.readlines()
     for s in sentences:
         phrase = s.split('\t')
         label = phrase[2][3:].strip()
@@ -169,6 +175,7 @@ utils/stanford-corenlp-full-2017-06-09/stanford-corenlp-3.8.0-models.jar'
         with open(fname, 'r') as jsonfile:
             json_data = json.load(jsonfile)
     else:
+        json_data = {}
         if data_name == 'bopang':
             data_dir = '/Users/jaeickbae/Documents/projects/data/\
 bopang_twitter/rt-polaritydata/'

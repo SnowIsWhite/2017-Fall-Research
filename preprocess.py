@@ -201,8 +201,8 @@ def readData(data_name, isDependency, isPOS, MAX_LENGTH):
         with open(fname, 'r') as jsonfile:
             json_data = json.load(jsonfile)
     else:
-        json_data = readDataFromFile(data_name, isDependency, isPOS, MAX_LENGTH,
-        fname)
+        json_data = readDataFromFile(fname, data_name, isDependency, isPOS,
+        MAX_LENGTH)
     return json_data
 
 def prepareData(data_name, isDependency=False, isPOS=False, MAX_LENGTH=30,
@@ -225,4 +225,4 @@ VOCAB_SIZE=30000, mini_batch_size=128, GPU_use=False):
     return lang, tr, tr_label, tr_lengths, va, va_label, te, te_label
 
 if __name__ == "__main__":
-    prepareData('bopang', mini_batch_size=20, GPU_use=False)
+    readData('blogs', True, False, 30)

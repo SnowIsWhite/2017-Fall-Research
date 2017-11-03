@@ -43,6 +43,7 @@ class basicAttn(nn.Module):
         self.align = nn.Linear(hidden_size*2, 1)
         self.tanh = nn.Tanh()
         self.out = nn.Linear(hidden_size*2, label_size)
+        self.softmax = nn.LogSoftmax()
 
     def forward(self, input_variable, input_lengths, hidden):
         mini_batch_size = input_variable.size()[0]
@@ -68,7 +69,6 @@ class basicAttn(nn.Module):
         context_vector = alpha.bmm(rnn_output.transpose(0,1))
         # B, 1, S bmm B, S, H*2 -> B, 1, H*2
         output = self.out(context_vector.squeeze(1))
-
         return output, hidden, alpha
 
     def initHidden(self, mini_batch_size):
@@ -108,14 +108,14 @@ if __name__ == "__main__":
     MAX_LENGTH = 30
     VOCAB_SIZE = 30000
     mini_batch_size = 64
-    GPU_use = False
+    GPU_use = True
 
-    n_epoch = 10
+    n_epoch = 14
     n_layer = 1
     embedding_size = 1000
-    hidden_size = 7
-    learning_rate = 0.0001
-    dropout = 0.1
+    hidden_size = 1000
+    learning_rate = 0.001
+    dropout = 0.5
     print_every = mini_batch_size * 10
     plot_every = mini_batch_size * 5
 
@@ -123,6 +123,8 @@ if __name__ == "__main__":
     test_data, test_label = prepareData(data_name, isDependency, isPOS,
     MAX_LENGTH, VOCAB_SIZE, mini_batch_size, GPU_use)
     print("Data Preparation Done.")
+
+
     model = basicAttn(lang.n_words, embedding_size, mini_batch_size,
     hidden_size, len(lang.label2index), n_layer, dropout, GPU_use)
     criterion = nn.CrossEntropyLoss()
@@ -156,13 +158,11 @@ if __name__ == "__main__":
                 print_loss_total = 0
                 print('%s (%d %d%%) %.4f' % ((timeSince(start,iter_cnt/total_iter)),
                 iter_cnt, iter_cnt/total_iter * 100, print_loss_avg))
-            break
         # plot every epoch
         plot_loss_avg = plot_loss_total / (epoch*1.)
         plot_losses.append(plot_loss_avg)
         plot_loss_total = 0
-        break
-    showPlot(plot_losses, 'batched_vanilaRNN')
+    showPlot(plot_losses, 'basicAttention')
     print("Training done.")
 
     # save model
@@ -177,10 +177,11 @@ if __name__ == "__main__":
         predicted.append(label[0])
         attention_weights.append(alpha.data)
 
-    # print accuracy, confusion_matrix
+    # print accuracy
     cnt = 0
     for idx, p in enumerate(predicted):
         if p == test_label[idx].data[0]:
             cnt += 1
-    print("acc: "+ str(cnt*1./len(predicted)))
+    acc = str(cnt*1./len(predicted))
+    print(acc)
     # print attention weights
