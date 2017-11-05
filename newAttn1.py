@@ -344,7 +344,7 @@ if __name__ == "__main__":
         if GPU_use:
             encoder.cuda()
             decoder.cuda()
-            fina.cuda()
+            final.cuda()
 
         start = time.time()
         plot_losses = []
@@ -384,8 +384,6 @@ if __name__ == "__main__":
                     plot_loss_avg = plot_loss_total / (plot_every*1.)
                     plot_losses.append(plot_loss_avg)
                     plot_loss_total = 0
-                break
-            break
         showPlot(plot_losses, plot_dir + plot_name + str(lr))
 
         # validation on learning rate
@@ -409,7 +407,6 @@ if __name__ == "__main__":
             max_learning_rate = lr
 
         print("For learning rate " + str(lr) + ", accuracy: " + str(acc))
-        break
     print("Training done.")
 
     print("Test with maximum learning rate.")
@@ -431,7 +428,7 @@ if __name__ == "__main__":
     if GPU_use:
         encoder.cuda()
         decoder.cuda()
-        fina.cuda()
+        final.cuda()
 
     start = time.time()
     plot_losses = []
@@ -471,8 +468,6 @@ if __name__ == "__main__":
                 plot_loss_avg = plot_loss_total / (plot_every*1.)
                 plot_losses.append(plot_loss_avg)
                 plot_loss_total = 0
-            break
-        break
     showPlot(plot_losses, plot_dir + plot_name)
 
     # test

@@ -12,7 +12,6 @@ import torch.nn.functional as F
 from torch import optim
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_fscore_support
-from masked_cross_entropy import *
 from preprocess import *
 from utils import *
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
@@ -69,8 +68,7 @@ class basicAttn(nn.Module):
         context_vector = alpha.bmm(rnn_output.transpose(0,1))
         # B, 1, S bmm B, S, H*2 -> B, 1, H*2
         output = self.out(context_vector.squeeze(1))
-        return output, hidden, alpha
-
+        return output, hidden, alpha.squeeze().cpu().data
     def initHidden(self, mini_batch_size):
         hidden = Variable(torch.zeros(self.n_layer*2, mini_batch_size,
         self.hidden_size))
@@ -108,7 +106,7 @@ if __name__ == "__main__":
     MAX_LENGTH = 30
     VOCAB_SIZE = 30000
     mini_batch_size = 64
-    GPU_use = True
+    GPU_use = False
 
     n_epoch = 14
     n_layer = 1
@@ -118,10 +116,14 @@ if __name__ == "__main__":
     dropout = 0.5
     print_every = mini_batch_size * 10
     plot_every = mini_batch_size * 5
+    plot_dir = './plots/'
+    plot_name = 'basicAttention'
+    if not os.path.exists(plot_dir):
+        os.makedirs(plot_dir)
 
     lang, train_data, train_label, train_lengths, valid_data, valid_label, \
-    test_data, test_label = prepareData(data_name, isDependency, isPOS,
-    MAX_LENGTH, VOCAB_SIZE, mini_batch_size, GPU_use)
+    valid_lengths, test_data, test_label = prepareData(data_name, isDependency,
+    isPOS, MAX_LENGTH, VOCAB_SIZE, mini_batch_size, GPU_use)
     print("Data Preparation Done.")
 
 
@@ -158,30 +160,37 @@ if __name__ == "__main__":
                 print_loss_total = 0
                 print('%s (%d %d%%) %.4f' % ((timeSince(start,iter_cnt/total_iter)),
                 iter_cnt, iter_cnt/total_iter * 100, print_loss_avg))
-        # plot every epoch
-        plot_loss_avg = plot_loss_total / (epoch*1.)
-        plot_losses.append(plot_loss_avg)
-        plot_loss_total = 0
-    showPlot(plot_losses, 'basicAttention')
+            if iter_cnt % plot_every == 0:
+                plot_loss_avg = plot_loss_total / (plot_every*1.)
+                plot_losses.append(plot_loss_avg)
+                plot_loss_total = 0
+    showPlot(plot_losses, plot_dir + plot_name)
     print("Training done.")
 
     # save model
     torch.save(model.state_dict(), './basic_attention.pkl')
     print("Model Saved.")
 
+    if not os.path.exists('./attn_results'):
+        os.makedirs('./attn_results')
+    fname = './attn_results/' + plot_name + '.txt'
     # test
     predicted = []
     attention_weights = []
     for target_var in test_data:
         label, alpha = test(model, target_var)
         predicted.append(label[0])
-        attention_weights.append(alpha.data)
+        attention_weights.append([alpha])
 
-    # print accuracy
+    # print accuracy, attention
+    open(fname, 'w').close()
     cnt = 0
     for idx, p in enumerate(predicted):
+        correct = 0
         if p == test_label[idx].data[0]:
             cnt += 1
+            correct = 1
+        printAttentions(fname, correct, attention_weights[idx], lang,
+        test_data[idx].data)
     acc = str(cnt*1./len(predicted))
-    print(acc)
-    # print attention weights
+    print('acc: ' + str(acc))
