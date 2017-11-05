@@ -44,4 +44,4 @@ def printAttentions(fname, correct, attn, lang, input_tensor):
             attn_words = [lang.index2word[tup[1]] for tup in sorted_zip]
             for word in attn_words:
                 f.write(word + "\t")
-            f.write('\n')
+            f.write('\n\n')
