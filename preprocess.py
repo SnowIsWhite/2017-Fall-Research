@@ -206,7 +206,7 @@ def readData(data_name, isDependency, isPOS, MAX_LENGTH):
     return json_data
 
 def prepareData(data_name, isDependency=False, isPOS=False, MAX_LENGTH=30,
-VOCAB_SIZE=30000, mini_batch_size=128, GPU_use=False):
+VOCAB_SIZE=30000, mini_batch_size=64, GPU_use=False):
     # read data
     """Data: {label: [[tokens]]}"""
     print("Reading data...")
@@ -216,13 +216,15 @@ VOCAB_SIZE=30000, mini_batch_size=128, GPU_use=False):
     tr, tr_label, va, va_label, te, te_label = splitLabels(tr, va, te)
     # make batches
     tr, tr_label, tr_lengths = batchData(tr, tr_label, mini_batch_size)
+    va, va_label, va_lengths = batchData(va, va_label, mini_batch_size)
     lang = Language(data_name)
     print("Make dictionary...")
     makeDictionary(lang, tr, VOCAB_SIZE)
     tr, tr_label = trainDataToVariable(tr, tr_label, lang, GPU_use)
-    va, va_lbael = testDataToVariable(va, va_label, lang, GPU_use)
+    va, va_label = trainDataToVariable(va, va_label, lang, GPU_use)
     te, te_label = testDataToVariable(te, te_label, lang, GPU_use)
-    return lang, tr, tr_label, tr_lengths, va, va_label, te, te_label
+    return lang, tr, tr_label, tr_lengths, va, va_label, va_lengths, \
+    te, te_label
 
 if __name__ == "__main__":
-    readData('blogs', True, False, 30)
+    prepareData('blogs')
