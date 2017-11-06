@@ -3,6 +3,7 @@ import sys
 import json
 import time
 import pickle
+import math
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -129,8 +130,7 @@ class BaeAttn1Decoder(nn.Module):
         return output, hidden, attention_weights
 
     def initHidden(self, backward_state):
-        backward_state = torch.unsqueeze(backward_state, 0)
-        hidden = self.init(backward_state)
+        hidden = self.init(backward_state).unsqueeze(0)
         hidden = F.tanh(hidden)
         hidden = hidden.repeat(self.n_layer, 1, 1)
         return hidden
@@ -188,6 +188,7 @@ class finalAttention(nn.Module):
 def train(encoder, decoder, final, encoder_optimizer, decoder_optimizer,
 final_optimizer, criterion, encoder_input, input_label, target_features,
 input_lengths, final_method, GPU_use):
+    clip = 0.5
     mini_batch_size = encoder_input.size()[0]
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
@@ -233,6 +234,9 @@ input_lengths, final_method, GPU_use):
         output = final(decoder_outputs)
     loss = criterion(output, input_label.squeeze())
     loss.backward()
+    torch.nn.utils.clip_grad_norm(encoder.parameters(), clip)
+    torch.nn.utils.clip_grad_norm(decoder.parameters(), clip)
+    torch.nn.utils.clip_grad_norm(final.parameters(), clip)
     encoder_optimizer.step()
     decoder_optimizer.step()
     final_optimizer.step()
@@ -307,7 +311,7 @@ if __name__ == "__main__":
     embedding_size = 1000
     hidden_size = 1000
     a_hidden_size = 1000
-    learning_rate = [0.01, 0.001, 0.0001]
+    learning_rate = [0.001, 0.0001, 0.00001]
     dropout = 0.5
     print_every = mini_batch_size * 10
     plot_every = mini_batch_size
@@ -372,6 +376,9 @@ if __name__ == "__main__":
                 decoder_optimizer, final_optimizer, criterion, input_var,
                 input_label, target_var, input_lengths, final_method, GPU_use)
 
+                if math.isnan(loss):
+                    print("Loss NaN")
+                    continue
                 print_loss_total += loss
                 plot_loss_total += loss
                 if iter_cnt % print_every == 0:
@@ -456,6 +463,9 @@ if __name__ == "__main__":
             decoder_optimizer, final_optimizer, criterion, input_var,
             input_label, target_var, input_lengths, final_method, GPU_use)
 
+            if math.isnan(loss):
+                print("Loss NaN")
+                continue
             print_loss_total += loss
             plot_loss_total += loss
             if iter_cnt % print_every == 0:
