@@ -13,6 +13,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_fscore_support
 from preprocess import *
 from utils import *
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 class BaeAttn1Encoder(nn.Module):
     """ word attention """
@@ -123,7 +124,7 @@ class BaeAttn1Decoder(nn.Module):
         embedded = self.embedding(word_inputs)
         gru_input = torch.cat((embedded, context_vector),2)\
         .view(seq_len, batch, -1)
-        output, hidden = self.gru(gru_input, prev_hidden)
+        output, hidden = self.gru(gru_input, last_hidden)
         output = output.squeeze()
         # output: B, H
         # hidden: layer, B, H
@@ -141,15 +142,22 @@ class feedforward(nn.Module):
         super(feedforward, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
         self.lrelu = nn.LeakyReLU()
+        self.tanh = nn.Tanh()
         self.fc2 = nn.Linear(hidden_size, hidden_size/2)
-        self.fc3 = nn.Linear(hidden_size/2, num_classes)
+        self.fc3 = nn.Linear(hidden_size/2, hidden_size/4)
+        self.fc4 = nn.Linear(hidden_size/4, hidden_size/8)
+        self.fc5 = nn.Linear(hidden_size/8, num_classes)
 
     def forward(self, x):
         out = self.fc1(x)
-        out = self.lrelu(out)
+        out = self.tanh(out)
         out = self.fc2(out)
-        out = self.lrelu(out)
+        out = self.tanh(out)
         out = self.fc3(out)
+        out = self.tanh(out)
+        out = self.fc4(out)
+        out = self.tanh(out)
+        out = self.fc5(out)
         return out
 
 class finalAttention(nn.Module):
@@ -292,6 +300,11 @@ final_method, GPU_use):
     final.train(True)
     return output.data, attention_weights
 
+def adjust_learning_rate(optimizer, epoch, lr):
+    lr = lr * (0.1 ** (epoch // 10))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+
 if __name__ == "__main__":
     data_name = 'bopang'
     num_features = 4
@@ -306,7 +319,7 @@ if __name__ == "__main__":
     mini_batch_size = 64
     GPU_use = False
 
-    n_epoch = 10
+    n_epoch = 14xw
     n_layer = 1
     embedding_size = 1000
     hidden_size = 1000
@@ -366,8 +379,11 @@ if __name__ == "__main__":
             target_var = target_var.cuda()
 
         for epoch in range(n_epoch):
+            adjust_learning_rate(encoder_optimizer, epoch, lr)
+            adjust_learning_rate(decoder_optimizer, epoch, lr)
+            adjust_learning_rate(final_optimizer, epoch, lr)
             for i in range(len(train_data)):
-                iter_cnt += 1
+                iter_cnt += mini_batch_size
                 input_var = train_data[i]
                 input_label = train_label[i]
                 input_lengths = train_lengths[i]
@@ -453,8 +469,11 @@ if __name__ == "__main__":
         target_var = target_var.cuda()
 
     for epoch in range(n_epoch):
+        adjust_learning_rate(encoder_optimizer, epoch, lr)
+        adjust_learning_rate(decoder_optimizer, epoch, lr)
+        adjust_learning_rate(final_optimizer, epoch, lr)
         for i in range(len(train_data)):
-            iter_cnt += 1
+            iter_cnt += mini_batch_size
             input_var = train_data[i]
             input_label = train_label[i]
             input_lengths = train_lengths[i]
