@@ -167,7 +167,8 @@ def adjust_learning_rate(optimizer, epoch, lr):
 if __name__ == "__main__":
     data_name = 'blogs'
     feature_name = 'lexicon_word2vec.json'
-    num_features = 18176
+    feature_types = ['Positive', 'Negative', 'Negate']
+    num_features = 7424
     isDependency = False
     isPOS = False
     MAX_LENGTH = 30
@@ -180,7 +181,7 @@ if __name__ == "__main__":
     embedding_size = 300
     hidden_size = 200
     learning_rate = 1e-4
-    dropout = 0.1
+    dropout = 0.5
     print_every = mini_batch_size * 10
     plot_every = mini_batch_size
     plot_dir = './plots/'
@@ -195,12 +196,13 @@ if __name__ == "__main__":
     print("Data Preparation Done.")
 
     # get feature embeddings
-    feature_lists = readFeatureList(feature_name)
+    feature_lists = readFeatureList(feature_name, feature_types)
     feature_embeddings = []
     for feat in feature_lists:
         feature_embeddings = feature_embeddings + feat
     feature_embeddings = Variable(torch.FloatTensor(feature_embeddings))
-
+    if GPU_use:
+        feature_embeddings = feature_embeddings.cuda()
     num_classes = len(lang.label2index)
 
     # define models
@@ -222,6 +224,7 @@ if __name__ == "__main__":
     total_iter = len(train_data) * mini_batch_size * n_epoch * 1.
     iter_cnt = 0
 
+    print("Start Training...")
     for epoch in range(n_epoch):
         adjust_learning_rate(encoder_optimizer, epoch, learning_rate)
         adjust_learning_rate(cnn_optimizer, epoch, learning_rate)

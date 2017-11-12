@@ -67,13 +67,14 @@ def printAttentions5(fname, correct, attn, lang, input_tensor, label):
                 f.write(word + "\t")
             f.write('\n\n')
 
-def readFeatureList(feature_name):
+def readFeatureList(feature_name, types):
     with open('json_data/'+feature_name, 'r') as f:
         data = json.load(f)
-
     feature_lists = []
     for key in data:
         same_feature = []
+        if key not in types:
+            continue
         for tup in data[key]:
             same_feature.append(tup[1])
         feature_lists.append(same_feature)
