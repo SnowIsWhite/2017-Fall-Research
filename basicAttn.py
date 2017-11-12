@@ -24,19 +24,15 @@ TODO: hyperparameter tuning
 - epoch
 """
 class basicAttn(nn.Module):
-    def __init__(self, num_embeddings, embedding_size, mini_batch_size,
-    hidden_size, label_size, n_layer, dropout, GPU_use):
+    def __init__(self, num_embeddings, embedding_size, pretrained_weight,
+    mini_batch_size, hidden_size, label_size, n_layer, dropout, GPU_use):
         super(basicAttn, self).__init__()
-        self.num_embeddings = num_embeddings
-        self.embedding_size = embedding_size
-        self.mini_batch_size = mini_batch_size
         self.hidden_size = hidden_size
-        self.label_size = label_size
         self.n_layer = n_layer
-        self.dropout = dropout
         self.GPU_use = GPU_use
 
         self.embedding = nn.Embedding(num_embeddings, embedding_size)
+        self.embedding.weight.data.copy_(torch.from_numpy(pretrained_weight))
         self.gru = nn.GRU(embedding_size, hidden_size, n_layer, dropout=dropout,
         bidirectional=True)
         self.align = nn.Linear(hidden_size*2, 1)
@@ -100,7 +96,7 @@ def test(model, input_sentence):
     return topi, alpha
 
 if __name__ == "__main__":
-    data_name = 'bopang'
+    data_name = 'blogs'
     isDependency = False
     isPOS = False
     MAX_LENGTH = 30
@@ -110,24 +106,25 @@ if __name__ == "__main__":
 
     n_epoch = 14
     n_layer = 1
-    embedding_size = 1000
-    hidden_size = 1000
-    learning_rate = 0.001
+    embedding_size = 300
+    hidden_size = 200
+    learning_rate = 1e-3
     dropout = 0.5
     print_every = mini_batch_size * 10
     plot_every = mini_batch_size * 5
     plot_dir = './plots/'
-    plot_name = 'basicAttention'
+    plot_name = 'basicBlogs1'
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
 
     lang, train_data, train_label, train_lengths, valid_data, valid_label, \
-    valid_lengths, test_data, test_label = prepareData(data_name, isDependency,
-    isPOS, MAX_LENGTH, VOCAB_SIZE, mini_batch_size, GPU_use)
+    valid_lengths, test_data, test_label, embedding\
+     = prepareData(data_name, isDependency, isPOS, MAX_LENGTH, VOCAB_SIZE,
+     mini_batch_size, GPU_use)
     print("Data Preparation Done.")
 
 
-    model = basicAttn(lang.n_words, embedding_size, mini_batch_size,
+    model = basicAttn(lang.n_words, embedding_size, embedding, mini_batch_size,
     hidden_size, len(lang.label2index), n_layer, dropout, GPU_use)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
