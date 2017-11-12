@@ -17,15 +17,13 @@ from read_data import *
 
 PAD_token = 0
 UNK_token = 1
-SOS_token = 2
-EOS_token = 3
 
 class Language:
     def __init__(self, name):
         self.name = name
-        self.n_words = 4
+        self.n_words = 2
         self.word2index = {}
-        self.index2word = {0: 'PAD', 1: 'UNK', 2: 'SOS', 3:'EOS'}
+        self.index2word = {0: 'PAD', 1: 'UNK'}
         self.word2count = {}
         if self.name == 'blogs':
             self.label2index = {'ne': 0, 'hp': 1, 'sd': 2, 'ag': 3, 'dg': 4,
@@ -52,7 +50,7 @@ class Language:
     def initialize(self):
         self.n_words = 4
         self.word2index = {}
-        self.index2word = {0: 'PAD', 1: 'UNK', 2: 'SOS', 3:'EOS'}
+        self.index2word = {0: 'PAD', 1: 'UNK'}
         self.word2count = {}
 
 def splitData(data, train=0.8, valid=0.1, test=0.1):
@@ -145,6 +143,10 @@ def makeDictionary(lang, tr, VOCAB_SIZE):
             break
         lang.addWord(tup[0])
 
+def makeDictionary2(lang, word_list):
+    for w in word_list:
+        lang.addWord(w)
+
 def phraseToIndex(phrase, lang):
     result = []
     for word in phrase:
@@ -207,6 +209,7 @@ def readData(data_name, isDependency, isPOS, MAX_LENGTH):
 
 def prepareData(data_name, isDependency=False, isPOS=False, MAX_LENGTH=30,
 VOCAB_SIZE=30000, mini_batch_size=64, GPU_use=False):
+    embedding_dir = 'json_data/'+data_name+str(MAX_LENGTH)+'_veclist.json'
     # read data
     """Data: {label: [[tokens]]}"""
     print("Reading data...")
@@ -219,12 +222,23 @@ VOCAB_SIZE=30000, mini_batch_size=64, GPU_use=False):
     va, va_label, va_lengths = batchData(va, va_label, mini_batch_size)
     lang = Language(data_name)
     print("Make dictionary...")
-    makeDictionary(lang, tr, VOCAB_SIZE)
+    word_list = []
+    embedding_list = []
+    embedding_list.append([0]*300)
+    embedding_list.append(np.random.rand(300).tolist())
+    with open(embedding_dir, 'r') as f:
+        embedding = json.load(f)
+    for tup in embedding:
+        word_list.append(tup[0])
+        embedding_list.append(tup[1])
+    embedding = np.array(embedding_list)
+    #makeDictionary(lang, tr, VOCAB_SIZE)
+    makeDictionary2(lang, word_list)
     tr, tr_label = trainDataToVariable(tr, tr_label, lang, GPU_use)
     va, va_label = trainDataToVariable(va, va_label, lang, GPU_use)
     te, te_label = testDataToVariable(te, te_label, lang, GPU_use)
     return lang, tr, tr_label, tr_lengths, va, va_label, va_lengths, \
-    te, te_label
+    te, te_label, embedding
 
 if __name__ == "__main__":
-    prepareData('blogs')
+    prepareData('bopang')

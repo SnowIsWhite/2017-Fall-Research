@@ -1,6 +1,7 @@
 import time
 import math
 import matplotlib
+import json
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -65,3 +66,15 @@ def printAttentions5(fname, correct, attn, lang, input_tensor, label):
             for word in attn_words:
                 f.write(word + "\t")
             f.write('\n\n')
+
+def readFeatureList(feature_name):
+    with open('json_data/'+feature_name, 'r') as f:
+        data = json.load(f)
+
+    feature_lists = []
+    for key in data:
+        same_feature = []
+        for tup in data[key]:
+            same_feature.append(tup[1])
+        feature_lists.append(same_feature)
+    return feature_lists

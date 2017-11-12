@@ -27,10 +27,13 @@ def unicode_to_ascii(s):
 
 def filterText(text):
     text = (text.lower().strip())
+    text = re.sub(r"[^a-zA-Z \']", "", text)
+    """
     text = text.replace('-', '')
     text = text.replace('_', '')
-    text = re.sub(r"([.:;)(<>!?\"\'])", r"\1", text)
-    text = text.strip()
+    #text = re.sub(r"([.,:;)(<>])", '', text)
+    text = re.sub(r"([.,:;)(<>?!\"\'])", r"\1", text)
+    """
     return text
 
 def getDependencyRelations(json_data, temp_data, parser):
@@ -83,11 +86,13 @@ def readBopangData(data_dir, isDependency, isPOS, MAX_LENGTH, tokenizer, parser)
 
     temp_data = {'neg': [], 'pos': []}
     for line in pos_lines:
+        line = filterText(line)
         tokenized_sentence = tokenizer.word_tokenize(line)
         if len(tokenized_sentence) <5 or len(tokenized_sentence) > MAX_LENGTH:
             continue
         temp_data['pos'].append(tokenized_sentence)
     for line in neg_lines:
+        line = filterText(line)
         tokenized_sentence = tokenizer.word_tokenize(line)
         if len(tokenized_sentence) <5 or len(tokenized_sentence) > MAX_LENGTH:
             continue
@@ -113,7 +118,7 @@ def readTwitterData(data_dir, isDependency, isPOS, MAX_LENGTH, tokenizer, parser
     for s in sentences:
         phrase = s.split('\t')
         label = phrase[2][3:].strip()
-        if tag not in temp_data:
+        if label not in temp_data:
             continue
         sentence = phrase[1]
         filtered_sentence = filterText(sentence)
@@ -194,3 +199,8 @@ Benchmark/category_gold_std.txt'
         with open(fname, 'w') as f:
             json.dump(json_data, f)
     return json_data
+
+"""
+if __name__ == "__main__":
+    readDataFromFile('/json_data/bopang.json', 'bopang', False, False, 30)
+"""
